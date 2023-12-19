@@ -4,4 +4,4 @@ class ChatManager {
     }
 }
 
-export { ChatManager };
+window.chatM = ChatManager;

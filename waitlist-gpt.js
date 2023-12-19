@@ -240,3 +240,7 @@ class ChatManager {
     }
 }
 
+$(document).ready(function(){
+    // Initialize the chat manager
+    window.chatManager = new ChatManager();
+});

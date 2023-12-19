@@ -18,7 +18,6 @@ class ChatManager {
     }
 
     initializeChat() {            
-        this.apiKey = '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';
         this.assistantID = 'asst_vmoSSsFi9UhgnFwj7sRi6CT1';
         this.thread = null;
         this.messages = [];

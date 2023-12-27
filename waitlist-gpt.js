@@ -442,6 +442,9 @@ class ChatUIController {
         if(this.initialState) {
             $('.initial-state').removeClass('initial-state');
             this.initialState = false;
+
+            // Remove placeholder text about email
+            $('#chat-input').attr('placeholder', '');
         }
 
         if (message) {

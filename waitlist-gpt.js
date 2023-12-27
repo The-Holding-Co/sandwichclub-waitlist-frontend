@@ -653,7 +653,7 @@ class ChatUIController {
         var lastUserMessage = $('#chat-container .user-message').last();
         var careTerms = args.care_terms;
         
-        if (lastUserMessage.length > 0) { //make sure we found one
+        if (lastUserMessage.length > 0 && careTerms) { //make sure we found one
 
             var content = lastUserMessage.html();
 

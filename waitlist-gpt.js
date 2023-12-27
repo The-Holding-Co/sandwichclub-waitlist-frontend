@@ -383,7 +383,7 @@ class MailChimpClient {
 
 class ChatUIController {
     constructor() {
-        this.initialMessage = "What is your email address?";
+        this.initialState = true;
         this.initializeChatUI();
         this.initializeAssistant();
         this.chatCompletionClient = new ChatCompletion();
@@ -391,9 +391,18 @@ class ChatUIController {
     }
 
     initializeChatUI() {            
-        const submitButton = document.getElementById('chat-submit');
+        const initialSubmitButton = document.getElementById('chat-submit'); //TODO clean this up
+        const submitButton = document.getElementById('chat-submit-send');
         const inputField = document.getElementById('chat-input');
+        this.$container = $('#chat-container');
+        this.$indicator = $('<div>', { class: 'waitlist-progress-indicator' });
+        this.$upperGradient = $('.chat-upper-gradient');
+        this.$lowerGradient = $('.chat-lower-gradient');
 
+        initialSubmitButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.handleSubmit()
+        });
         submitButton.addEventListener('click', (event) => {
             event.preventDefault();
             this.handleSubmit()
@@ -405,7 +414,7 @@ class ChatUIController {
             }
         });
 
-        this.addMessagetoUI(this.initialMessage, "assistant");
+        this.bindGradientssToScroll();
     }
 
     initializeAssistant() {
@@ -422,8 +431,18 @@ class ChatUIController {
     }
 
     handleSubmit() {
+
         const inputField = document.getElementById('chat-input');
         const message = inputField.value;
+        if(message == '') {
+            return; //do nothing if nothing was entered
+        }
+
+        // Tell the chat UI to update to non-initial state
+        if(this.initialState) {
+            $('.initial-state').removeClass('initial-state');
+            this.initialState = false;
+        }
 
         if (message) {
             this.addMessagetoUI(message, 'user');
@@ -434,10 +453,39 @@ class ChatUIController {
         inputField.value = ''; // Clear the input field after submission
     }
 
+    bindGradientssToScroll() {
+        this.$container.on('scroll', () => {
+            var scrollTop = this.$container.scrollTop();
+            var scrollHeight = this.$container.prop('scrollHeight');
+            var containerHeight = this.$container.innerHeight();
+            var paddingBottom = parseInt(this.$container.css('padding-bottom'), 10);
+
+          // Adjust scrollHeight by subtracting paddingBottom
+          scrollHeight -= paddingBottom;
+
+            // Check if scrolled to top
+            if (scrollTop <= 0) {
+                this.$upperGradient.addClass('fade-out');
+            } else {
+                this.$upperGradient.removeClass('fade-out');
+            }
+
+            // Check if scrolled to bottom
+            if (scrollTop + containerHeight >= scrollHeight) {
+                this.$lowerGradient.addClass('fade-out');
+            } else {
+                this.$lowerGradient.removeClass('fade-out');
+            }
+        });
+    }
+
     sendMessageToAssistant(message) {
+        
+        this.showProgressIndicator();
         this.assistant.sendMessage(message).then(response => {
 
             if(response.status == 'completed') {
+                this.hideProgressIndicator();
                 this.displayNewMessages(response.messages);
             } else if(response.status == 'requires_action') {
                 this.processToolCalls(response.run);
@@ -452,9 +500,11 @@ class ChatUIController {
     }
 
     sendToolOutputsToAssistant(toolOutputs) {
+        this.showProgressIndicator();
         this.assistant.sendToolOutputs(toolOutputs).then(response => {
             
             if(response.status == 'completed') {
+                this.hideProgressIndicator();
                 this.displayNewMessages(response.messages);
             } else if(response.status == 'requires_action') {
                 this.processToolCalls(response.run);
@@ -476,7 +526,7 @@ class ChatUIController {
         if (sender === 'user') {
             messageDiv.classList.add('user-message');
         } else {
-            messageDiv.classList.add('recipient-message');
+            messageDiv.classList.add('agent-message');
         }
 
         messageDiv.textContent = message;
@@ -503,6 +553,31 @@ class ChatUIController {
             const message = newMessages[i];
             this.addMessagetoUI(message.content[0].text.value, 'assistant');
         }
+
+        // scroll to show the latest
+        this.scrollToBottomOfChatContainer();
+    }
+
+    scrollToBottomOfChatContainer() {
+        var scrollHeight = this.$container.prop('scrollHeight');
+        this.$container.animate({
+          scrollTop: scrollHeight
+        }, 200);
+    }
+
+     showProgressIndicator() {
+        // Check if the indicator already exists to avoid duplicates
+        if (this.$container.find('.waitlist-progress-indicator').length === 0) {
+            this.$container.append(this.$indicator);
+        }
+
+        $("#chat-submit-send").addClass("disabled");
+        this.scrollToBottomOfChatContainer();
+    }
+
+    hideProgressIndicator() {
+        this.$container.find('.waitlist-progress-indicator').remove();
+        $("#chat-submit-send").removeClass("disabled");
     }
 
     processToolCalls(response) {
@@ -618,7 +693,7 @@ class ChatUIController {
             
             // Create a new div and set the HTML content
             const newDiv = document.createElement('div');
-            newDiv.className = 'chat-message recipient-message';
+            newDiv.className = 'chat-message agent-message';
             newDiv.innerHTML = htmlContent;
 
             // Append the new div to the chat container
